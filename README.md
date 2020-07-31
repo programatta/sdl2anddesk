@@ -10,6 +10,11 @@ Estructura de proyecto para trabajar con SDL2 tanto en plataformas ANDROID y Lin
 * ndk: 21.3.6528147
 * build-tools: 29.0.2
 
+### iOS ###
+* osx: 10.13.6
+* xcode: 10.1
+
+
 ### Desktop ###
 #### OSX ####
 * osx: 10.13.6
@@ -82,10 +87,18 @@ Contiene las plataformas sobre las que se va a construir el binario.
 
 En estos momentos se soporta:
 * Android.
+* iOS.
 * Desktop (Linux / OSX).
 
 Del zip descargado de la librería SDL copiamos el directorio **android-project** y lo renombramos a **android**, y con esto podemos generar el apk.
+
 Creamos una carpeta desktop para generar el binario en linux/osx.
+
+Creamos una carpeta ios y en ella copiamos dos directorios que encontraremos en los zip descargados, que son:
+* SDL/Xcode-iOS/SDL (la dejamos como SDL)
+* SDL_image/XCode-iOS (la renombramos como SDL_image)
+
+En ambas debe estar la carpeta de proyecto de xcode.
 
 
 ## Preparación ##
@@ -191,6 +204,112 @@ dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
 }
 ~~~
+
+### iOS ###
+Tenemos que configurar cada uno de los proyectos que hemos añadido para generar las librerías estáticas.
+
+#### SDL ####
+Abrimos este proyecto con xcode.
+**Public Headers** y **Library Source** aparecen en rojo porque no encuentra los fuentes. Para solucionar esto hacemos los siguiente:
+1. Seleccionamos **Public Headers**.
+2. En la columna de la derecha de xcode en la sección **Identity and Type** bajo **Location** hay una ruta relativa incorrecta. Si pulsamos sobre el icono de carpeta, debemos seleccionar el directorio include de SDL. Nos debe de quedar así:
+
+~~~
+../../../sources/SDL/include
+~~~
+
+3. Seleccionamos **Library Source** y hacemos la misma operación, pero ahora tiene que apuntar al directorio src de SDL. Nos debe de quedar así:
+
+~~~
+../../../sources/SDL/src
+~~~
+
+Seleccionamos **SDL** bajo *PROJECT* y buscamos la sección **Linking**. En **Other Linker Flags** añadimos:
+~~~
+$(inherited)
+~~~
+
+Compilamos el target **libSDL-iOS**.
+
+
+#### SDL_image ####
+Abrimos este proyecto con xcode.
+Van a aparecer en rojo el fichero SDL_image.h y los ficheros fuente. Hay que ir uno por uno y operar de la misma manera que en la sección anterior (pero ahora por cada fichero).
+
+Seleccionamos **SDL_image** bajo *PROJECT* y buscamos la sección:
+1. **Linking**. En **Other Linker Flags** añadimos:
+~~~
+$(inherited)
+~~~
+
+2. **Search Path**. En **Header Search Paths** añadimos lo siguiente: 
+~~~
+$(SRCROOT)/../../../sources/SDL/include
+~~~
+
+Compilamos el target **libSDL_image-iOS**.
+
+
+#### app ####
+Creamos un proyecto llamado **app** (p.e) bajo **platforms/ios**.
+El tipo de proyecto estará basado en vista.
+
+Hacemos los siguientes cambios:
+1. Borramos los ficheros **AppDelegate.h** y **AppDelegate.m**
+2. Borramos el fichero **main.m**
+3. Borramos el fichero **MainStoryboard**.
+4. Editamos el fichero **info.plist** y la entrada **Main storyboard dile base name** la dejamos vacia.
+
+5. Seleccionamos **app** bajo *PROJECT* y buscamos la sección:
+    
+* **Linking**. En **Other Linker Flags** añadimos:
+~~~
+$(inherited)
+~~~
+
+* **Search Paths**. En **Header Search Paths** añadimos lo siguiente: 
+
+~~~
+$(SRCROOT)/../../../sources/SDL/include
+$(SRCROOT)/../../../sources/SDL_image
+~~~
+
+* **Search Paths**. En **Library Search Paths** añadimos lo siguiente: 
+
+~~~
+$(SRCROOT)/../SDL/output/iOS/debug
+$(SRCROOT)/../SDL_image/output/iOS/debug
+~~~
+
+6. Seleccionamos **app** bajo *TARGETS* y seleccionamos **Build Phases**:
+
+Seleccionamos la sección **Link Binary With Libraries** y añadimos los siguientes *Frameworks*:
+
+~~~
+CoreAudio.framework
+Foundation.framework
+UIKit.framework
+CoreGraphics.framework
+OpenGLES.framework
+QuartzCore.framework
+AudioToolbox.framework
+CoreMotion.framework
+GameController.framework
+AVFoundation.framework
+Metal.framework
+CoreBluetooth.framework
+CoreServices.framework
+~~~
+
+Y las siguientes librerías:
+~~~
+libSDL2.a
+libSDL2_image.a
+~~~
+
+7. Finalmente añadimos los fuentes (*.cpp/*.hpp) bajo el grupo **app** (en amarillo) y también añadimos los **assets** a la altura de **app** (debe quedar en color azul).
+
+Compilamos.
 
 ### Desktop ###
 En el directorio **SDL_image** compilamos la libreria **zlib** antes de nada, ya que hace uso de ella la librería **libpng**.

@@ -113,7 +113,7 @@ int main(int argc, char **argv)
     Uint32 lFPSTime = SDL_GetTicks();
     Uint32 frameTime;
     const int MIN_FRAME_TIME = 16;
-    int iNumOfFPS, iFPS;
+    int iNumOfFPS = 0, iFPS = 0;
     while (!done) {
         frameTime = SDL_GetTicks();
         SDL_Event event;
